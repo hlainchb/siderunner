@@ -150,6 +150,20 @@ class SeleniumTestCase:
             print 'verifyNotTextPresent: ',repr(text),'present'
             raise
 
+    def verifyElementPresent(self, driver, target):
+        try:
+            assert bool(target in driver.page_source)
+        except:
+            print 'verifyElementPresent: ', repr(target), 'not present'
+            raise
+
+    def verifyElementNotPresent(self, driver, target):
+        try:
+            assert not bool(target in driver.page_source)
+        except:
+            print 'verifyNotElementPresent: ', repr(target), 'present'
+            raise
+
     def waitForTextPresent(self, driver, text):
         try:
             assert bool(text in driver.page_source)
