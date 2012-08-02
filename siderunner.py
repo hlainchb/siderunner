@@ -120,6 +120,9 @@ class SeleniumTestCase:
     def open(self, driver, url):
         driver.get(self.base_url + url)
 
+    def click(self, driver, target):
+        find_element(driver, target).click()
+
     def clickAndWait(self, driver, target):
         find_element(driver, target).click()
 
@@ -152,14 +155,14 @@ class SeleniumTestCase:
 
     def verifyElementPresent(self, driver, target):
         try:
-            assert bool(target in driver.page_source)
+            assert bool(find_element(driver, target))
         except:
             print 'verifyElementPresent: ', repr(target), 'not present'
             raise
 
     def verifyElementNotPresent(self, driver, target):
         try:
-            assert not bool(target in driver.page_source)
+            assert not bool(find_element(driver, target))
         except:
             print 'verifyNotElementPresent: ', repr(target), 'present'
             raise
@@ -176,6 +179,20 @@ class SeleniumTestCase:
             assert not bool(text in driver.page_source)
         except:
             print 'waitForTextNotPresent: ',repr(text),'present'
+            raise
+
+    def assertValue(self, driver, target, value):
+        try:
+            assert bool(find_element(driver, target).text == value)
+        except:
+            print 'assertValue: ', repr(target), repr(value)
+            raise
+
+    def assertNotValue(self, driver, target, value):
+        try:
+            assert not bool(find_element(driver, target).text == value)
+        except:
+            print 'assertNotValue: ', repr(target), repr(value)
             raise
 
     def selectWindow(self, driver, window):
