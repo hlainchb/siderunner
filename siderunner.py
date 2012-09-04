@@ -96,11 +96,10 @@ class SeleniumTestCase:
 
         rows = dom.getElementsByTagName('tr')
         for row in rows[1:]:
-
             self.commands.append( getCommand(row.getElementsByTagName('td')) )
 
         for command in self.commands:
-            if not hasattr(self, command[0]):
+            if not hasattr(self, str(command[0])):
                 raise Exception('Unknown Selenium IDE command %s' % command)
 
     def run(self, driver, url):
@@ -110,7 +109,7 @@ class SeleniumTestCase:
         logger.info('running '+self.filename)
 
         for command in self.commands:
-            method = getattr(self, command[0])
+            method = getattr(self, str(command[0]))
             args = []
             if command[1]:
                 args.append(command[1])
@@ -205,6 +204,7 @@ class SeleniumTestSuite:
 
     def __init__(self, filename):
         path = os.path.split(filename)[0]
+
         document = open(filename).read()
         dom = xml.dom.minidom.parseString(document)
 
