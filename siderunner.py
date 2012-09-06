@@ -87,8 +87,9 @@ def find_element(driver, target):
 
 class SeleniumTestCase:
 
-    def __init__(self, filename):
+    def __init__(self, filename, callback=None):
         self.filename = filename
+        self.callback = callback
         document = open(filename).read()
         dom = xml.dom.minidom.parseString(document)
 
@@ -111,12 +112,14 @@ class SeleniumTestCase:
         for command in self.commands:
             method = getattr(self, str(command[0]))
             args = []
-            if command[1]:
+            if command[1] != None:
                 args.append(command[1])
-            if command[2]:
+            if command[2] != None:
                 args.append(command[2])
             logger.info('   ' + ' '.join([command[0]]+[repr(a) for a in args]).splitlines()[0])
             method(driver, *args)
+            if self.callback:
+                self.callback(driver.page_source)
 
     def open(self, driver, url):
         driver.get(self.base_url + url)
@@ -162,11 +165,18 @@ class SeleniumTestCase:
             raise
 
     def verifyElementNotPresent(self, driver, target):
+        present = True
         try:
-            assert not bool(find_element(driver, target))
+            find_element(driver, target)
+        except NoSuchElementException:
+            present = False
+
+        try:
+            assert not present
         except:
-            print 'verifyNotElementPresent: ', repr(target), 'present'
+            print 'verifyElementNotPresent: ', repr(target), 'present'
             raise
+
 
     def waitForTextPresent(self, driver, text):
         try:
@@ -182,18 +192,22 @@ class SeleniumTestCase:
             print 'waitForTextNotPresent: ',repr(text),'present'
             raise
 
-    def assertValue(self, driver, target, value):
+    def assertValue(self, driver, target, value=u''):
         try:
-            assert bool(find_element(driver, target).text == value)
+            target_value = find_element(driver, target).get_attribute('value')
+            logger.info('  assertNotValue target value ='+repr(target_value))
+            assert target_value == value
         except:
-            print 'assertValue: ', repr(target), repr(value)
+            print 'assertValue: ', repr(target), repr(find_element(driver, target).get_attribute('value')), repr(value)
             raise
 
-    def assertNotValue(self, driver, target, value):
+    def assertNotValue(self, driver, target, value=u''):
         try:
-            assert not bool(find_element(driver, target).text == value)
+            target_value = find_element(driver, target).get_attribute('value')
+            logger.info('  assertNotValue target value ='+repr(target_value))
+            assert target_value != value
         except:
-            print 'assertNotValue: ', repr(target), repr(value)
+            print 'assertNotValue: ', repr(target), repr(target_value), repr(value)
             raise
 
     def selectWindow(self, driver, window):
@@ -202,8 +216,9 @@ class SeleniumTestCase:
 
 class SeleniumTestSuite:
 
-    def __init__(self, filename):
+    def __init__(self, filename, callback=None):
         path = os.path.split(filename)[0]
+        self.callback = callback
 
         document = open(filename).read()
         dom = xml.dom.minidom.parseString(document)
@@ -216,7 +231,7 @@ class SeleniumTestSuite:
 
             title = row.getElementsByTagName('a')[0].childNodes[0].data
             test_filename = row.getElementsByTagName('a')[0].attributes.items()[0][1]
-            self.tests.append((title, SeleniumTestCase(os.path.join(path, test_filename))))
+            self.tests.append((title, SeleniumTestCase(os.path.join(path, test_filename), self.callback)))
 
     def run(self, driver, url):
         for title, test in self.tests:
@@ -224,6 +239,7 @@ class SeleniumTestSuite:
                 test.run(driver, url)
             except:
                 print 'Error in %s (%s)' % (title, test.filename)
+                raise
 
     def __repr__(self):
         tests = '\n'.join(['%s - %s' % (title,test.filename) for title,test in self.tests])
