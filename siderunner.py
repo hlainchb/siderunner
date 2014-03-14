@@ -145,9 +145,10 @@ class SeleniumTestCase:
 
     def verifyTextPresent(self, driver, text):
         try:
-            assert bool(text in driver.page_source)
+            source = driver.page_source
+            assert bool(text in source)
         except:
-            print 'verifyTextPresent: ',repr(text),'not present'
+            print 'verifyTextPresent: ',repr(text),'not present in',repr(source)
             raise
 
     def verifyTextNotPresent(self, driver, text):
@@ -155,6 +156,13 @@ class SeleniumTestCase:
             assert not bool(text in driver.page_source)
         except:
             print 'verifyNotTextPresent: ',repr(text),'present'
+            raise
+
+    def assertElementPresent(self, driver, target):
+        try:
+            assert bool(find_element(driver, target))
+        except:
+            print 'assertElementPresent: ', repr(target), 'not present'
             raise
 
     def verifyElementPresent(self, driver, target):
@@ -177,7 +185,6 @@ class SeleniumTestCase:
             print 'verifyElementNotPresent: ', repr(target), 'present'
             raise
 
-
     def waitForTextPresent(self, driver, text):
         try:
             assert bool(text in driver.page_source)
@@ -190,6 +197,18 @@ class SeleniumTestCase:
             assert not bool(text in driver.page_source)
         except:
             print 'waitForTextNotPresent: ',repr(text),'present'
+            raise
+
+    def assertText(self, driver, target, value=u''):
+        try:
+            target_value = find_element(driver, target).text
+            logger.info('  assertText target value ='+repr(target_value))
+            if value.startswith('exact:'):
+                assert target_value == value[len('exact:'):]
+            else:
+                assert target_value == value
+        except:
+            print 'assertText: ', repr(target), repr(find_element(driver, target).get_attribute('value')), repr(value)
             raise
 
     def assertValue(self, driver, target, value=u''):
