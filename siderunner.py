@@ -229,6 +229,15 @@ class SeleniumTestCase:
             print 'assertNotValue: ', repr(target), repr(target_value), repr(value)
             raise
 
+    def verifyValue(self, driver, target, value=u''):
+        try:
+            target_value = find_element(driver, target).get_attribute('value')
+            logger.info('  verifyValue target value ='+repr(target_value))
+            assert target_value == value
+        except:
+            print 'verifyValue: ', repr(target), repr(find_element(driver, target).get_attribute('value')), repr(value)
+            raise
+
     def selectWindow(self, driver, window):
         pass
 
