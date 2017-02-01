@@ -4,7 +4,7 @@
     Author......: Herb Lainchbury
     License.....: (C) 2012 Dynamic Solutions Inc.
     Description.: SeleniumIDE test runner for Python
-    
+
     Runs tests built in Selenium IDE using WebDriver in place without the need
     to export those tests.
 
@@ -15,22 +15,21 @@
 
 
 import os
-import unittest
 import xml.dom.minidom
 import logging
-
-logger = logging.getLogger()
 
 from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import NoSuchElementException
 
 __all__ = ['SeleniumTestCase', 'SeleniumTestSuite']
 
+logger = logging.getLogger()
+
 target_cache = {}
 
 
 def totext(node):
-    if hasattr(node,'data'):
+    if hasattr(node, 'data'):
         return node.data
     elif node.toxml() == '<br/>':
         return '\n'
@@ -60,7 +59,8 @@ def find_element(driver, target):
             # try lowercase version of link, work around text-transform bug
             result = driver.find_element_by_link_text(target[5:].lower())
             target_cache[target] = 'link=' + target[5:].lower()
-            logger.info('   label %s is being cached as %s' % (target, target_cache[target]))
+            msg = '   label %s is being cached as %s'
+            logger.info(msg, target, target_cache[target])
             return result
 
     elif target.startswith('//'):
@@ -79,13 +79,16 @@ def find_element(driver, target):
         return driver.find_element_by_name(target[5:])
 
     else:
-        direct = driver.find_element_by_name(target) or driver.find_element_by_id(target)
+        direct = (
+            driver.find_element_by_name(target) or
+            driver.find_element_by_id(target)
+        )
         if direct:
             return direct
         raise Exception('Don\'t know how to find %s' % target)
 
 
-class SeleniumTestCase:
+class SeleniumTestCase(object):
 
     def __init__(self, filename, callback=None):
         self.filename = filename
@@ -97,7 +100,7 @@ class SeleniumTestCase:
 
         rows = dom.getElementsByTagName('tr')
         for row in rows[1:]:
-            self.commands.append( getCommand(row.getElementsByTagName('td')) )
+            self.commands.append(getCommand(row.getElementsByTagName('td')))
 
         for command in self.commands:
             if not hasattr(self, str(command[0])):
@@ -112,11 +115,15 @@ class SeleniumTestCase:
         for command in self.commands:
             method = getattr(self, str(command[0]))
             args = []
-            if command[1] != None:
+            if command[1] is not None:
                 args.append(command[1])
-            if command[2] != None:
+            if command[2] is not None:
                 args.append(command[2])
-            logger.info('   ' + ' '.join([command[0]]+[repr(a) for a in args]).splitlines()[0])
+            logger.info(
+                '   ' + ' '.join(
+                    [command[0]]+[repr(a) for a in args]
+                ).splitlines()[0]
+            )
             method(driver, *args)
             if self.callback:
                 self.callback(driver.page_source)
@@ -135,41 +142,51 @@ class SeleniumTestCase:
         element.click()
         element.clear()
         element.send_keys(text)
-    
+
     def select(self, driver, target, value):
         element = find_element(driver, target)
         if value.startswith('label='):
             Select(element).select_by_visible_text(value[6:])
         else:
-            raise Exception("Don\'t know how to select %s on %s" % (value, target))
+            msg = "Don\'t know how to select %s on %s"
+            raise Exception(msg % (value, target))
 
     def verifyTextPresent(self, driver, text):
         try:
             source = driver.page_source
             assert bool(text in source)
         except:
-            print 'verifyTextPresent: ',repr(text),'not present in',repr(source)
+            print(
+                'verifyTextPresent: ',
+                repr(text),
+                'not present in',
+                repr(source)
+            )
             raise
 
     def verifyTextNotPresent(self, driver, text):
         try:
             assert not bool(text in driver.page_source)
         except:
-            print 'verifyNotTextPresent: ',repr(text),'present'
+            print(
+                'verifyNotTextPresent: ',
+                repr(text),
+                'present'
+            )
             raise
 
     def assertElementPresent(self, driver, target):
         try:
             assert bool(find_element(driver, target))
         except:
-            print 'assertElementPresent: ', repr(target), 'not present'
+            print('assertElementPresent: ', repr(target), 'not present')
             raise
 
     def verifyElementPresent(self, driver, target):
         try:
             assert bool(find_element(driver, target))
         except:
-            print 'verifyElementPresent: ', repr(target), 'not present'
+            print('verifyElementPresent: ', repr(target), 'not present')
             raise
 
     def verifyElementNotPresent(self, driver, target):
@@ -182,33 +199,38 @@ class SeleniumTestCase:
         try:
             assert not present
         except:
-            print 'verifyElementNotPresent: ', repr(target), 'present'
+            print('verifyElementNotPresent: ', repr(target), 'present')
             raise
 
     def waitForTextPresent(self, driver, text):
         try:
             assert bool(text in driver.page_source)
         except:
-            print 'waitForTextPresent: ',repr(text),'not present'
+            print('waitForTextPresent: ', repr(text), 'not present')
             raise
 
     def waitForTextNotPresent(self, driver, text):
         try:
             assert not bool(text in driver.page_source)
         except:
-            print 'waitForTextNotPresent: ',repr(text),'present'
+            print('waitForTextNotPresent: ', repr(text), 'present')
             raise
 
     def assertText(self, driver, target, value=u''):
         try:
             target_value = find_element(driver, target).text
-            logger.info('  assertText target value ='+repr(target_value))
+            logger.info('  assertText target value =' + repr(target_value))
             if value.startswith('exact:'):
                 assert target_value == value[len('exact:'):]
             else:
                 assert target_value == value
         except:
-            print 'assertText: ', repr(target), repr(find_element(driver, target).get_attribute('value')), repr(value)
+            print(
+                'assertText: ',
+                repr(target),
+                repr(find_element(driver, target).get_attribute('value')),
+                repr(value),
+            )
             raise
 
     def assertValue(self, driver, target, value=u''):
@@ -217,7 +239,12 @@ class SeleniumTestCase:
             logger.info('  assertNotValue target value ='+repr(target_value))
             assert target_value == value
         except:
-            print 'assertValue: ', repr(target), repr(find_element(driver, target).get_attribute('value')), repr(value)
+            print(
+                'assertValue: ',
+                repr(target),
+                repr(find_element(driver, target).get_attribute('value')),
+                repr(value),
+            )
             raise
 
     def assertNotValue(self, driver, target, value=u''):
@@ -226,7 +253,12 @@ class SeleniumTestCase:
             logger.info('  assertNotValue target value ='+repr(target_value))
             assert target_value != value
         except:
-            print 'assertNotValue: ', repr(target), repr(target_value), repr(value)
+            print(
+                'assertNotValue: ',
+                repr(target),
+                repr(target_value),
+                repr(value),
+            )
             raise
 
     def verifyValue(self, driver, target, value=u''):
@@ -235,17 +267,35 @@ class SeleniumTestCase:
             logger.info('  verifyValue target value ='+repr(target_value))
             assert target_value == value
         except:
-            print 'verifyValue: ', repr(target), repr(find_element(driver, target).get_attribute('value')), repr(value)
+            print(
+                'verifyValue: ',
+                repr(target),
+                repr(find_element(driver, target).get_attribute('value')),
+                repr(value),
+            )
             raise
 
     def selectWindow(self, driver, window):
         pass
 
 
-class SeleniumTestSuite:
+class SeleniumTestSuite(object):
 
     def __init__(self, filename, callback=None):
-        path = os.path.split(filename)[0]
+
+        def get_test_rows(dom):
+            return dom.getElementsByTagName('tr')
+
+        def get_suite_title(row):
+            return row.getElementsByTagName('b')[0].childNodes[0].data
+
+        def get_test_title(row):
+            return row.getElementsByTagName('a')[0].childNodes[0].data
+
+        def get_filename(row):
+            return row.getElementsByTagName('a')[0].attributes.items()[0][1]
+
+        path = os.path.abspath(os.path.split(filename)[0])
         self.callback = callback
 
         document = open(filename).read()
@@ -253,13 +303,17 @@ class SeleniumTestSuite:
 
         self.tests = []
 
-        rows = dom.getElementsByTagName('tr')
-        self.title = rows[0].getElementsByTagName('b')[0].childNodes[0].data
-        for row in rows[1:]:
+        rows = get_test_rows(dom)
+        self.title = get_suite_title(rows[0])
 
-            title = row.getElementsByTagName('a')[0].childNodes[0].data
-            test_filename = row.getElementsByTagName('a')[0].attributes.items()[0][1]
-            self.tests.append((title, SeleniumTestCase(os.path.join(path, test_filename), self.callback)))
+        for row in rows[1:]:
+            title = get_test_title(row)
+            test_filename = get_filename(row)
+
+            pathname = os.path.join(path, test_filename)
+            logger.debug('loading test: %s', pathname)
+            test_case = SeleniumTestCase(pathname, self.callback)
+            self.tests.append((title, test_case))
 
     def run(self, driver, url):
         for title, test in self.tests:
@@ -270,7 +324,6 @@ class SeleniumTestSuite:
                 raise
 
     def __repr__(self):
-        tests = '\n'.join(['%s - %s' % (title,test.filename) for title,test in self.tests])
+        tests = '\n'.join(['%s - %s' % (title, test.filename)
+                           for title, test in self.tests])
         return '%s\n%s' % (self.title, tests)
-
-
