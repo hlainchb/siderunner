@@ -12,23 +12,30 @@
       * subclass tests from unittest.TestCase?
 
 """
-
+# pylint: disable=C0111, C0103, R0201
 
 import os
 import xml.dom.minidom
 import logging
+import unittest
 
+from pyvirtualdisplay import Display
 from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import NoSuchElementException
 
-__all__ = ['SeleniumTestCase', 'SeleniumTestSuite']
+__all__ = ['SeleniumTestCase', 'SeleniumTestSuite', 'SeleniumTests']
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
+selenium_logger = logging.getLogger('selenium')
+selenium_logger.setLevel(logging.INFO)
+easyprocess_logger = logging.getLogger('easyprocess')
+easyprocess_logger.setLevel(logging.INFO)
 
 target_cache = {}
 
 
-def totext(node):
+def to_text(node):
+    """return node text"""
     if hasattr(node, 'data'):
         return node.data
     elif node.toxml() == '<br/>':
@@ -37,17 +44,19 @@ def totext(node):
         return ''
 
 
-def getCommand(nodelist):
-    rc = []
-    for node in nodelist:
+def get_command(nodes):
+    """get node text"""
+    result = []
+    for node in nodes:
         if node.childNodes == []:
-            rc.append(None)
+            result.append(None)
         else:
-            rc.append(''.join(totext(n) for n in node.childNodes))
-    return rc
+            result.append(''.join(to_text(n) for n in node.childNodes))
+    return result
 
 
 def find_element(driver, target):
+    """find an element in the page"""
 
     if target in target_cache:
         target = target_cache[target]
@@ -89,18 +98,20 @@ def find_element(driver, target):
 
 
 class SeleniumTestCase(object):
+    """A Single Selenium Test Case"""
 
     def __init__(self, filename, callback=None):
         self.filename = filename
         self.callback = callback
+        self.base_url = None
+        self.commands = []
+
         document = open(filename).read()
         dom = xml.dom.minidom.parseString(document)
 
-        self.commands = []
-
         rows = dom.getElementsByTagName('tr')
         for row in rows[1:]:
-            self.commands.append(getCommand(row.getElementsByTagName('td')))
+            self.commands.append(get_command(row.getElementsByTagName('td')))
 
         for command in self.commands:
             if not hasattr(self, str(command[0])):
@@ -280,6 +291,7 @@ class SeleniumTestCase(object):
 
 
 class SeleniumTestSuite(object):
+    """A Selenium Test Suite"""
 
     def __init__(self, filename, callback=None):
 
@@ -327,3 +339,52 @@ class SeleniumTestSuite(object):
         tests = '\n'.join(['%s - %s' % (title, test.filename)
                            for title, test in self.tests])
         return '%s\n%s' % (self.title, tests)
+
+
+class SeleniumTests(unittest.TestCase):
+    """A Set of Selenium Test Suites"""
+
+    url = 'http://localhost'
+    headless = True
+    size = (1024, 768)
+    logger = logging.getLogger(__name__)
+    path = '.'
+
+    def get_driver(self):
+        pass
+
+    def setUp(self):
+        if self.headless:
+            self.logger.info('running headless')
+            self.display = Display(visible=0, size=self.size)
+            self.display.start()
+        else:
+            self.logger.info('not running headless')
+
+        self.driver = self.get_driver()
+        self.driver.set_window_size(*self.size)
+        self.driver.implicitly_wait(10)
+
+    def tearDown(self):
+        if self.headless:
+            self.display.stop()
+
+        self.driver.quit()
+
+    def run_suite(self, suite_name):
+        # logger = self.logger
+        logger.debug('running test against %s', self.url)
+        suite_file = os.path.join(self.path, suite_name)
+        if os.path.isfile(suite_file):
+            tests = SeleniumTestSuite(suite_file, self.check_for_errors)
+            try:
+                logger.debug('running suite %s', suite_file)
+                tests.run(self.driver, self.url)
+            except:
+                self.driver.save_screenshot('%s-error_screen.png' % suite_name)
+                raise
+        else:
+            raise Exception('suite %r missing' % suite_file)
+
+    def check_for_errors(self, text):
+        pass
