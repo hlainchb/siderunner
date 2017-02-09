@@ -20,6 +20,7 @@ import logging
 import unittest
 
 from pyvirtualdisplay import Display
+from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import NoSuchElementException
 
@@ -351,7 +352,7 @@ class SeleniumTests(unittest.TestCase):
     path = '.'
 
     def get_driver(self):
-        pass
+        return webdriver.Chrome()
 
     def setUp(self):
         if self.headless:
