@@ -1,3 +1,2 @@
 
-from siderunner import *
-
+from .siderunner import (SeleniumTestCase, SeleniumTestSuite, SeleniumTests)

@@ -245,10 +245,27 @@ class SeleniumTestCase(object):
             )
             raise
 
+    def assertNotText(self, driver, target, value=u''):
+        try:
+            target_value = find_element(driver, target).text
+            logger.info('  assertNotText target value =' + repr(target_value))
+            if value.startswith('exact:'):
+                assert target_value != value[len('exact:'):]
+            else:
+                assert target_value != value
+        except:
+            print(
+                'assertNotText: ',
+                repr(target),
+                repr(find_element(driver, target).get_attribute('value')),
+                repr(value),
+            )
+            raise
+
     def assertValue(self, driver, target, value=u''):
         try:
             target_value = find_element(driver, target).get_attribute('value')
-            logger.info('  assertNotValue target value ='+repr(target_value))
+            logger.info('  assertValue target value ='+repr(target_value))
             assert target_value == value
         except:
             print(
@@ -333,7 +350,7 @@ class SeleniumTestSuite(object):
             try:
                 test.run(driver, url)
             except:
-                print 'Error in %s (%s)' % (title, test.filename)
+                print('Error in %s (%s)' % (title, test.filename))
                 raise
 
     def __repr__(self):
