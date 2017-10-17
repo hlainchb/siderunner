@@ -91,7 +91,8 @@ def find_element(driver, target):
     else:
         direct = (
             driver.find_element_by_name(target) or
-            driver.find_element_by_id(target)
+            driver.find_element_by_id(target) or
+            driver.find_element_by_link_text(target)
         )
         if direct:
             return direct
@@ -144,10 +145,12 @@ class SeleniumTestCase(object):
         driver.get(self.base_url + url)
 
     def click(self, driver, target):
-        find_element(driver, target).click()
+        element = find_element(driver, target)
+        driver.execute_script("arguments[0].scrollIntoView();", element)
+        element.click()
 
     def clickAndWait(self, driver, target):
-        find_element(driver, target).click()
+        self.click(driver, target)
 
     def type(self, driver, target, text=''):
         element = find_element(driver, target)
@@ -231,7 +234,7 @@ class SeleniumTestCase(object):
     def assertText(self, driver, target, value=u''):
         try:
             target_value = find_element(driver, target).text
-            logger.info('  assertText target value =' + repr(target_value))
+            logger.info('   assertText target value =' + repr(target_value))
             if value.startswith('exact:'):
                 assert target_value == value[len('exact:'):]
             else:
